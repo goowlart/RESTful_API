@@ -1,107 +1,139 @@
-const express = require('express'); //como eu vou mecher em rotas vou precisar do expresse
+const express = require('express');
 
-const bcrypt = require ('bcryptjs'); //usarei para verificaçao de usuario
+const bcrypt = require('bcryptjs');
 
-const jwt = require ('jsonwebtoken'); //module para criaçao de token
+const jwt = require('jsonwebtoken');
 
-const User = require('../models/User'); //chamdno o medelo que eu vou trabalhar
+const User = require('../models/User');
 
-const authConfig = require ('../../config/auth');
+const authConfig = require('../../config/auth');
 
-const crypto = require ('crypto'); // funçao que ka vem integrada ao node
+const crypto = require('crypto');
 
-const router = express.Router(); //essa funçao cria uma rotas para os usuarios
+const mailer = require('../../modules/mailer');
+
+const router = express.Router();
 
 
-//################################################        FUNCTION DE GENERATION DE TOKEN
+//################################################        FUNCTION OF TOKEN GENERATION
 
-function generateToken(params = {} ){ //function para gerar token de altenticaçao
-  return jwt.sign(params, authConfig.secret, { //para criançao do meu token dentro do meu codigo  // para recuperaçao do id do usuarion ({ id: user.id }, )
-   expiresIn: 86400, //tempo para que a senha expire  1 dia
+function generateToken(params = {}) {
+  return jwt.sign(params, authConfig.secret, {  // ({ id: user.id }, )
+    expiresIn: 86400, // time to token expiration 1 day
   });
 }
 
-
 //################################################         USER CREATION
 
-router.post('/register', async (req, res) => { //definindo uma rota para trabalho (nesse caso chamo de registro)
-  //ler mais sobre o async
-  const { email } = req.body; //recuperando o email
+router.post('/register', async (req, res) => {
 
-  try { //cria um usuario quando ele chama essa rota
-    if ( await User.findOne({ email })) //e se o email ja existir mensagem de erro
-      return res.status(400).send({ error: 'User already exists mon frère'});
+  const {
+    email
+  } = req.body;
 
-    const user = await User.create(req.body); //pega todos os parametros que o usuario cadastrou e passa para o user.create
-    //await espera alguma coisa acontecer para ser executado
-   user.password = undefined;
+  try {
+    if (await User.findOne({
+        email
+      })) // and if the email already exists error message
+      return res.status(400).send({
+        error: 'User already exists mon frère'
+      });
+
+    const user = await User.create(req.body); // takes all the parameters that the user registers and passes to the user.create
+// await expects something to happen to run
+    user.password = undefined;
 
     return res.send({
       user,
-      token: generateToken({ id : user.id }),
-    }); //usurio quando cria uma conta ja pode logar automaticamente porque le recebe um token
+      token: generateToken({
+        id: user.id
+      }),
+    }); // user when creating an account can already log in automatically because it receives a token
   } catch (err) {
     return res.status(400).send({
       error: 'Registrataion failed mon frère'
-    }); //me mostra se ouve um erro na hora de se enregistrar
+    });
   }
 });
 //################################################       USER AUTHENTICATION
-router.post('/authenticate', async (req, res) => { //crinado nova route de autenticaçao do usuarion
- const { email, password } = req.body;
 
- const user = await User.findOne({email}).select('+password'); // isso me permete de fzaer a descriptografia do password
+router.post('/authenticate', async (req, res) => {
+  const {
+    email,
+    password
+  } = req.body;
 
-if (!user)
- return res.status(400).send({ error: 'User not found mon frère' });
+  const user = await User.findOne({
+    email
+  }).select('+password'); // this allows me to decrypt the password
 
- if (!await bcrypt.compare(password, user.password)) //se a senha bate o usuario prossegue
- return res.status(400).send({ error: 'Invalid password mon frère' }); // se nao ele recebe uma mensagem de console.error();
+  if (!user)
+    return res.status(400).send({
+      error: 'User not found mon frère'
+    });
 
-   user.password = undefined; //denovo eu escondo senha do usuario
+  if (!await bcrypt.compare(password, user.password))
+    return res.status(400).send({
+      error: 'Invalid password mon frère'
+    });
 
-res.send({
-  user,
-  token: generateToken({ id : user.id }), //gerado token para o usuario quando ele faz o loginb
- }); // se ele logou bem ele me retorna o usuatio
+  user.password = undefined; // again I hide the user's password
+
+  res.send({
+    user,
+    token: generateToken({
+      id: user.id
+    }), // generated token for user when login
+  });
 
 });
 
+//##############################################           PASSWORD LOSS
 
+router.post('/forgot_password', async (req, res) => { //bug ainda nao resolvido , falta a parte de aultenticaçao do tokern
+  const {
+    email
+  } = req.body;
 
-
-
-
-//##############################################            PERCA DE SENHA
-
-
-
-
-
-router.post('/forgot_password', async (req, res) => {
-  const { email } = req.body;
   try {
+    const user = await User.findOne({
+      email
+    });
 
-    const user = await User.findOne({ email });
     if (!user)
-    return res.status(400).send({ error: 'User not found mon frère' })
 
-    const token = crypto.randomBytes(20).toString('hex'); //criando um token para o usuario possa resetar a senha
+      return res.status(400).send({
+        error: 'User not found mon frère'
+      });
 
+    const token = crypto.randomBytes(20).toString('hex'); // creating a token for the user can reset the password
 
-    const now = new Date(); //criando um data d´expiraçao para o  meu token
+    const now = new Date();// creating an expiration date for my token
     now.setHours(now.getHours() + 1);
 
-    await User.findByIdAndUpdate(user.id,{ //
+    await User.findByIdAndUpdate(user.id, {
       '$set': {
         passwordResetToken: token,
         passwordResetExpires: now,
       }
     });
-console
 
-  } catch (err){
-    res.status(400).send({error: 'Eroo on forgot password, try again mon frère'});//eu consigo passar um erro para o meu usaurio )
+    mailer.sendMail({
+      to: email,
+      from: 'goowlart@gmail.com',
+      template: 'auth/forgot_password',
+      context: { token },
+    }, (err) => {
+      if (err)
+        return res.status(400).send({erro: ' Error on forgot password, try again'});
+
+      return res.send();
+    })
+  } catch (err) {
+    console.log(err);
+    res.status(400).send({
+      error: 'Error on forgot password, try again'
+    });
   }
 });
 

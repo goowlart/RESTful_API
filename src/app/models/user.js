@@ -1,11 +1,11 @@
 const mongoose = require('../../database');
 const bcrypt = require('bcryptjs');
 
-//Schem c'est comme les champs de données de ma base de données
+
 const UserSchema = new mongoose.Schema({
   nom: {
     type: String,
-    require: true, //definido como obrigatorio
+    require: true,
   },
   prenom: {
     type: String,
@@ -13,14 +13,14 @@ const UserSchema = new mongoose.Schema({
   },
   email: {
     type: String,
-    unique: true, //para que seja unico
+    unique: true,
     required: true,
-    lowercase: true, //para que passe em minusculo
+    lowercase: true,
   },
   password: {
     type: String,
     require: true,
-    select: false, //para quan quando eu faça uma buca esses dados nao apareçao
+    select: false, // when a search is performed these data will not appear
   },
   passwordResetToken: {
     type: String,
@@ -28,21 +28,21 @@ const UserSchema = new mongoose.Schema({
   },
   passwordResetExpires: {
     type: Date,
-  select: false,
+    select: false,
   },
   createdAt: {
-    type: Date, //por defeiuto o momento em que ela for criada
+    type: Date,
     default: Date.now,
   },
 });
 
-UserSchema.pre('save', async function (next) { //function para a criptografia da senha ## chasch
+UserSchema.pre('save', async function(next) { // function for password encryption ## chasch
   const hash = await bcrypt.hash(this.password, 10);
   this.password = hash;
 
   next();
 });
 
-const User = mongoose.model('User', UserSchema); //definir o model
+const User = mongoose.model('User', UserSchema);
 
-module.exports = User; //export do model
+module.exports = User; 
