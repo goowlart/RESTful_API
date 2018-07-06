@@ -1,15 +1,10 @@
 const express = require('express');
-
 const authMiddleware = require('../middlewares/auth'); // importing my middlewares
-
 const Project = require('../models/project');
-
 const Task = require('../models/task');
-
 const router = express.Router();
 
 router.use(authMiddleware);
-
 
 router.get('/', async (req, res) => {
   try {
@@ -26,7 +21,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-
 router.get('/:projectId', async (req, res) => {
   try {
     const project = await Project.findById(req.params.projectId).populate(['user', 'tasks']);
@@ -41,10 +35,6 @@ router.get('/:projectId', async (req, res) => {
     });
   }
 });
-
-
-
-
 
 router.post('/', async (req, res) => {
   try {
@@ -114,10 +104,6 @@ router.put('/:projectId', async (req, res) => {
   }
 });
 
-
-
-
-
 router.delete('/:projectId', async (req, res) => {
 
   try {
@@ -132,8 +118,5 @@ router.delete('/:projectId', async (req, res) => {
   }
 
 });
-
-
-
 
 module.exports = app => app.use('/projects', router);

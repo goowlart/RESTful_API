@@ -1,7 +1,6 @@
 const mongoose = require('../../database');
 const bcrypt = require('bcryptjs');
 
-
 const TaskSchema = new mongoose.Schema({
   title: {
     type: String,
@@ -27,7 +26,6 @@ const TaskSchema = new mongoose.Schema({
     default: Date.now,
   },
 });
-
 
 const Task = mongoose.model('Task', TaskSchema);
 

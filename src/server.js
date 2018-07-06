@@ -1,6 +1,5 @@
 const express = require('express'); // require - importer le paquet EXPRESS
 const bodyParser = require('body-parser'); // require - importer le paquet BODY-PARSER
-
 //EXPRESS est un framework pour node.JS que fait les traitement des routes et requête HTTP
 //BODY-PARSER aussi un framework pour node.JS, aider à transcrire les paramètres de URL et JSONS
 
